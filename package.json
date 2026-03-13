@@ -1,5 +1,5 @@
 {
-  "name": "mygpstracks",
+  "name": "gpx-viz",
   "private": true,
   "version": "0.0.1-alpha1",
   "type": "module",
