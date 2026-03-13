@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PathLayer, ScatterplotLayer, IconLayer } from "@deck.gl/layers";
 import { gpx, kml } from "@tmcw/togeojson";
 import type { LayersList } from "@deck.gl/core";
 
-import WgTrackInfo from "./TrackInfo";
 import WgPreferences, {
   DEFAULT_PREFERENCES,
   type AltitudeUnit,
@@ -14,11 +13,12 @@ import { WgMap } from "./Map";
 import {
   processGeoJSON,
   type DataArray,
+  type PDP,
   type StartEnd,
   type TrackInfo,
   type Waypoint,
 } from "./lib";
-import WgImportTrack from "./ImportTrack";
+import WgTrackInfoManager from "./TrackInfoManager";
 
 const INITIAL_VIEW_STATE = {
   longitude: 0,
@@ -34,6 +34,7 @@ export default function App() {
   const [preferences, setPreferences] =
     useState<Preferences>(DEFAULT_PREFERENCES);
   const [startend, setStartEnd] = useState<StartEnd | undefined>(undefined);
+  const [profileData, setProfileData] = useState<PDP[]>([]);
 
   // event handler function for file upload event
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -68,6 +69,7 @@ export default function App() {
       setTrackInfo({
         ...track,
       });
+      setProfileData(track.profileData);
     };
 
     // trigger the file read action/event
@@ -90,7 +92,10 @@ export default function App() {
     }
   }
 
-  const layers = makeLayers(paths, waypoints, startend);
+  const layers = useMemo(
+    () => makeLayers(paths, waypoints, startend),
+    [paths, waypoints, startend],
+  );
 
   return (
     <>
@@ -98,8 +103,11 @@ export default function App() {
         preferences={preferences}
         onChange={handlePreferencesChanged}
       />
-      <WgImportTrack onUpload={handleFileUpload} />
-      <WgTrackInfo trackInfo={trackInfo} />
+      <WgTrackInfoManager
+        trackInfo={trackInfo}
+        profileData={profileData}
+        handleFileUpload={handleFileUpload}
+      />
       <WgMap
         viewState={viewState}
         setViewState={setViewState}

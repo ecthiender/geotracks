@@ -7,6 +7,7 @@ import {
   calculateDistance,
   calculateInstantSpeed,
   nearestPoint,
+  parseDate,
   type Waypoint,
 } from "./lib";
 
@@ -124,7 +125,7 @@ function generatePathTooltip(
       ? [nearest.pos[2], "m"]
       : [nearest.pos[2] * 3.28084, "ft"];
   const elev = parseFloat(elevation.toFixed(1)).toLocaleString();
-  const timestamp = new Date(Date.parse(object.timestamps[nearest.idx]));
+  const timestamp = parseDate(object.timestamps[nearest.idx]);
   const dist = calculateDistance(
     nearest,
     object,

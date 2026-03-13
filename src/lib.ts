@@ -24,6 +24,13 @@ export interface Track {
   length?: number;
   timestamp?: Date;
   createTime?: Date;
+  profileData: PDP[];
+}
+
+export interface PDP {
+  distance: number;
+  elevation: number;
+  timestamp: Date;
 }
 
 export interface TrackInfo {
@@ -97,7 +104,7 @@ export function processGeoJSON(
         position: f.geometry.coordinates,
         name: f.properties?.name,
         desc,
-        time: new Date(Date.parse(f.properties?.time)),
+        time: parseDate(f.properties?.time),
       });
     }
   });
@@ -117,12 +124,30 @@ export function processGeoJSON(
     zoom: 10,
   };
 
+  const profile: PDP[] = [];
+  let cumDist = 0;
+  tracks.forEach((t) => {
+    t.path.forEach((p, j) => {
+      profile.push({
+        distance: cumDist,
+        elevation: p[2],
+        timestamp: parseDate(t.timestamps[j]),
+      });
+      // Distance to next point
+      if (j < t.path.length - 1) {
+        const segDist = distance(point(t.path[j]), point(t.path[j + 1]));
+        cumDist += segDist;
+      }
+    });
+  });
+
   return {
     data: tracks,
     waypoints,
     start,
     end,
     startView,
+    profileData: profile,
     ...trackInfo,
   };
 }
@@ -134,10 +159,8 @@ function makeTrackInfo(
   const desc = f.properties?.desc;
   const length = parseFloat(f.properties?.geotracker_length);
   const duration = parseFloat(f.properties?.geotracker_duration);
-  const timestamp = new Date(Date.parse(f.properties?.time));
-  const createTime = new Date(
-    Date.parse(f.properties?.geotracker_creationtime),
-  );
+  const timestamp = parseDate(f.properties?.time);
+  const createTime = parseDate(f.properties?.geotracker_creationtime);
   return {
     name,
     desc,
@@ -191,8 +214,8 @@ export function calculateInstantSpeed(
 ): number | null {
   let speed = null;
   if (nearest.idx > 0 && nearest.idx < object.timestamps.length - 1) {
-    const prevTime = new Date(Date.parse(object.timestamps[nearest.idx - 1]));
-    const nextTime = new Date(Date.parse(object.timestamps[nearest.idx]));
+    const prevTime = parseDate(object.timestamps[nearest.idx - 1]);
+    const nextTime = parseDate(object.timestamps[nearest.idx]);
     const distSeg = distance(
       point(nearest.pos),
       point(object.path[nearest.idx - 1]),
@@ -203,4 +226,8 @@ export function calculateInstantSpeed(
     speed = timeSegHrs > 0 ? distSeg / timeSegHrs : 0;
   }
   return speed;
+}
+
+export function parseDate(d: string): Date {
+  return new Date(Date.parse(d));
 }

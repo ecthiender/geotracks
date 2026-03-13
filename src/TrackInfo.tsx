@@ -1,43 +1,122 @@
 import type { TrackInfo } from "./lib";
+import { FloatingWindow } from "./libui";
 
-export default function WgTrackInfo({ trackInfo }: { trackInfo: TrackInfo }) {
-  if (trackInfo.name && trackInfo.length && trackInfo.duration) {
+const HEADER_NAME = "📊 Track Info";
+
+export default function WgTrackInfo({
+  trackInfo,
+  trackInfoWindow,
+  setTrackInfoWindow,
+}: {
+  trackInfo: TrackInfo;
+  trackInfoWindow: any;
+  setTrackInfoWindow: any;
+}) {
+  if (trackInfo.name) {
     return (
-      <div
-        style={{
-          position: "absolute",
-          top: 100,
-          right: 10,
-          zIndex: 10,
-          background: "white",
-          color: "black",
-          padding: "15px",
-          borderRadius: "4px",
-          minWidth: 200,
-        }}
+      <FloatingWindow
+        floatingWinProps={trackInfoWindow}
+        setFloatingWinProps={setTrackInfoWindow}
+        headerTitle={HEADER_NAME}
       >
-        <div>
-          {" "}
-          <strong> {trackInfo.name} </strong>{" "}
+        <div
+          style={{
+            padding: "10px",
+            height: "calc(100% - 20px)",
+            overflow: "auto",
+          }}
+        >
+          {trackInfo.name && (
+            <div style={{ marginBottom: "16px" }}>
+              <div
+                style={{
+                  fontSize: "14px",
+                  color: "#6b7280",
+                  marginBottom: "4px",
+                }}
+              >
+                Name
+              </div>
+              <div style={{ fontWeight: 600, fontSize: "16px" }}>
+                {trackInfo.name}
+              </div>
+            </div>
+          )}
+
+          {trackInfo.desc && (
+            <div style={{ marginBottom: "16px" }}>
+              <div
+                style={{
+                  fontSize: "14px",
+                  color: "#6b7280",
+                  marginBottom: "4px",
+                }}
+              >
+                Description
+              </div>
+              <div style={{ fontSize: "14px", lineHeight: 1.5 }}>
+                {trackInfo.desc}
+              </div>
+            </div>
+          )}
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "12px",
+              fontSize: "14px",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  color: "#6b7280",
+                  fontSize: "12px",
+                  marginBottom: "2px",
+                }}
+              >
+                Distance
+              </div>
+              <div style={{ fontWeight: 600 }}>
+                {Math.ceil(trackInfo.length! / 1000)} km
+              </div>
+            </div>
+            <div>
+              <div
+                style={{
+                  color: "#6b7280",
+                  fontSize: "12px",
+                  marginBottom: "2px",
+                }}
+              >
+                Duration
+              </div>
+              <div style={{ fontWeight: 600 }}>
+                {trackInfo.duration &&
+                  durationMillisecondsToHumanReadable(trackInfo.duration)}
+              </div>
+            </div>
+            {trackInfo.createTime && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div
+                  style={{
+                    color: "#6b7280",
+                    fontSize: "12px",
+                    marginBottom: "2px",
+                  }}
+                >
+                  Start Time
+                </div>
+                <div style={{ fontWeight: 500 }}>
+                  {trackInfo.createTime.toLocaleString()}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <div> {trackInfo.desc} </div>
-        <div>
-          {" "}
-          Distance: {trackInfo.length &&
-            Math.ceil(trackInfo.length! / 1000)}{" "}
-          km{" "}
-        </div>
-        <div>
-          {" "}
-          Time:{" "}
-          {trackInfo.duration &&
-            durationMillisecondsToHumanReadable(trackInfo.duration)}{" "}
-        </div>
-        <div> Start time: {trackInfo.createTime?.toLocaleString()} </div>
-      </div>
+      </FloatingWindow>
     );
-  } else {
-    return null;
   }
 }
 
