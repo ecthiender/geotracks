@@ -121,12 +121,13 @@ export function processGeoJSON(
   let startView = {
     longitude: (minX + maxX) / 2,
     latitude: (minY + maxY) / 2,
-    zoom: 10,
+    zoom: 5,
   };
 
   const profile: PDP[] = [];
   let cumDist = 0;
   tracks.forEach((t) => {
+    // Sample data for performance (every 10th point)
     t.path.forEach((p, j) => {
       profile.push({
         distance: cumDist,
@@ -140,6 +141,8 @@ export function processGeoJSON(
       }
     });
   });
+  // sample the data for performance
+  const sampled = profile.filter((_t, i) => i % 10 === 0);
 
   return {
     data: tracks,
@@ -147,7 +150,7 @@ export function processGeoJSON(
     start,
     end,
     startView,
-    profileData: profile,
+    profileData: sampled,
     ...trackInfo,
   };
 }

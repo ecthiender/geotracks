@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { PathLayer, ScatterplotLayer, IconLayer } from "@deck.gl/layers";
+import { PathLayer, IconLayer } from "@deck.gl/layers";
 import { gpx, kml } from "@tmcw/togeojson";
 import type { LayersList } from "@deck.gl/core";
 
@@ -133,7 +133,7 @@ function makeLayers(
         data: paths,
         getPath: (d) => d.path,
         getWidth: 40,
-        getColor: [255, 0, 0, 80],
+        getColor: [147, 43, 198, 80],
         widthMinPixels: 8,
       }),
     );
@@ -144,7 +144,7 @@ function makeLayers(
         data: paths,
         getPath: (d) => d.path,
         getWidth: 10,
-        getColor: [255, 0, 0],
+        getColor: [147, 43, 198],
         widthMinPixels: 3,
         pickable: true,
       }),
@@ -154,14 +154,19 @@ function makeLayers(
   if (waypoints.length) {
     // waypoints
     layers.push(
-      new ScatterplotLayer({
+      new IconLayer({
         id: "waypoints",
         data: waypoints,
         getPosition: (d) => d.position,
-        getRadius: 30,
-        radiusMinPixels: 4,
-        getFillColor: [0, 200, 255],
+        sizeScale: 8,
+        getSize: 4,
+        getColor: [125, 206, 255],
         pickable: true,
+        iconAtlas:
+          "https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.png",
+        iconMapping:
+          "https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.json",
+        getIcon: () => "marker",
       }),
     );
   }
@@ -177,7 +182,7 @@ function makeLayers(
         getPosition: (d) => d.val,
         sizeScale: 8,
         getSize: 4,
-        getColor: (d) => (d.t === "start" ? [120, 200, 180] : [220, 10, 200]),
+        getColor: (d) => (d.t === "start" ? [43, 194, 54] : [200, 54, 43]),
         iconAtlas:
           "https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/icon-atlas.png",
         iconMapping:

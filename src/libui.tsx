@@ -53,8 +53,8 @@ export function FloatingWindow({
       }}
       minWidth={250}
       minHeight={180}
-      maxWidth={500}
-      maxHeight={400}
+      maxWidth={1400}
+      maxHeight={1000}
       dragHandleClassName="trackinfo-drag-handle"
       style={{
         position: "absolute" as const,

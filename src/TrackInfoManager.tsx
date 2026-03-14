@@ -148,7 +148,6 @@ export default function WgTrackInfoManager({
         trackInfoWindow={trackInfoWindow}
         setTrackInfoWindow={setTrackInfoWindow}
       />
-      ;
       <WgProfileGraph
         profileData={profileData}
         profileWindow={profileWindow}

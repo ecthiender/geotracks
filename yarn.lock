@@ -160,6 +160,16 @@
     "@babel/helper-string-parser" "^7.27.1"
     "@babel/helper-validator-identifier" "^7.28.5"
 
+"@canvasjs/charts@^3.15.12":
+  version "3.15.12"
+  resolved "https://registry.yarnpkg.com/@canvasjs/charts/-/charts-3.15.12.tgz#c84079dc3a2705f502f57f258673dde9b7306b6b"
+  integrity sha512-02tNi8DAQeGs9ctmn+XWanbHt4DF1Vz2YqxdPPfyR19s/YK+MDoQuy3Rae1rAhWLCqXuwdXe83baQ3iUCjpsdA==
+
+"@canvasjs/react-charts@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@canvasjs/react-charts/-/react-charts-1.0.2.tgz#56b1fa72018522240ce03106426f4ee57959112f"
+  integrity sha512-PZgJlDbGdMF4AN/KvrvGY9X50EByJMZ7MHfQB/U0aky9Onn9mt0CpsvwudBsBe+DofaV3SHR4SHn/Wfo/pubDw==
+
 "@deck.gl/core@^9.2.11":
   version "9.2.11"
   resolved "https://registry.yarnpkg.com/@deck.gl/core/-/core-9.2.11.tgz#94ec038473f22617e8aed5966f72510acba8b7c9"
