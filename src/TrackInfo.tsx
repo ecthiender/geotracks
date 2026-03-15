@@ -21,7 +21,7 @@ export default function WgTrackInfo({
       >
         <div
           style={{
-            padding: "10px",
+            padding: "0 10px",
             height: "calc(100% - 20px)",
             overflow: "auto",
           }}
@@ -121,14 +121,14 @@ export default function WgTrackInfo({
 }
 
 function durationMillisecondsToHumanReadable(duration: number): string {
-  let [hr, min] = durationMillisecondsToHrMin(duration);
+  const [hr, min] = durationMillisecondsToHrMin(duration);
   return `${hr} hr ${Math.round(min)} min`;
 }
 
 function durationMillisecondsToHrMin(duration: number): [number, number] {
-  let x = duration / 1000;
-  let y = x / 60.0;
-  let hr = Math.trunc(y / 60.0);
-  let min = y % 60.0;
+  const x = duration / 1000;
+  const y = x / 60.0;
+  const hr = Math.trunc(y / 60.0);
+  const min = y % 60.0;
   return [hr, min];
 }

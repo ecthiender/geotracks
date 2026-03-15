@@ -2,7 +2,6 @@ import { Map } from "react-map-gl/maplibre";
 import DeckGL from "@deck.gl/react";
 import type { LayersList, MapViewState, Viewport } from "@deck.gl/core";
 
-import type { DistanceSpeedUnit, Preferences } from "./Preferences";
 import {
   calculateDistance,
   calculateInstantSpeed,
@@ -10,6 +9,7 @@ import {
   parseDate,
   type Waypoint,
 } from "./lib";
+import type { DistanceSpeedUnit, Preferences } from "./preferences";
 
 export function WgMap({
   viewState,
@@ -83,11 +83,11 @@ function generateTooltip(
   viewport: Viewport,
   preferences: Preferences,
 ): TooltipContent {
-  if (object.hasOwnProperty("path")) {
+  if ("path" in object) {
     return generatePathTooltip(object, coord, viewport, preferences);
-  } else if (object.hasOwnProperty("position")) {
+  } else if ("position" in object) {
     return generateWaypointTooltip(object);
-  } else if (object.hasOwnProperty("t")) {
+  } else if ("t" in object) {
     return { html: capitalize(object.t).big() };
   }
   return null;
@@ -140,7 +140,7 @@ function generatePathTooltip(
   const dist_unit = distanceUnitDisplay(preferences.distance_speed);
   return {
     html: `
-      <div> Time: ${timestamp.toLocaleString()} <div>
+      <div> Time: ${timestamp.toLocaleTimeString()} <div>
       <div> Elevation: ${elev} ${elevation_unit} </div>
       <div> Speed: ${speed} ${speed_unit} <div>
       <div> Distance: ${dist} ${dist_unit} <div>

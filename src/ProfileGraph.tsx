@@ -4,11 +4,19 @@ import CanvasJSReact from "@canvasjs/react-charts";
 import type { PDP } from "./lib";
 import { FloatingWindow } from "./libui";
 
+interface WgProfileGraphProps {
+  profileData: PDP[];
+  profileWindow: any;
+  setProfileWindow: any;
+  setHoveredPDP: any;
+}
+
 export default function WgProfileGraph({
   profileData,
   profileWindow,
   setProfileWindow,
-}) {
+  setHoveredPDP,
+}: WgProfileGraphProps) {
   return (
     <FloatingWindow
       floatingWinProps={profileWindow}
@@ -16,7 +24,8 @@ export default function WgProfileGraph({
       headerTitle={"📈 Elevation Profile"}
     >
       <MemoProfileGraph
-        profileData={useMemo(() => profileData, [profileData.length])}
+        setHoveredPDP={setHoveredPDP}
+        profileData={useMemo(() => profileData, [profileData])}
       />
     </FloatingWindow>
   );
@@ -25,6 +34,7 @@ export default function WgProfileGraph({
 interface ProfileGraphProps {
   profileData: PDP[];
   windowHeight?: number;
+  setHoveredPDP: any;
 }
 
 const CanvasJSChart = CanvasJSReact.CanvasJSChart;
@@ -33,12 +43,14 @@ const MemoProfileGraph = React.memo(ProfileGraph);
 export function ProfileGraph({
   profileData,
   windowHeight = 400,
+  setHoveredPDP,
 }: ProfileGraphProps) {
   if (!profileData.length) return null;
 
   const chartData = profileData.map((point) => ({
     x: point.distance,
     y: point.elevation,
+    pos: point.position,
     labelDist: `${point.distance.toFixed(1)}km`,
     labelElev: `${point.elevation.toFixed(1)}m`,
   }));
@@ -57,6 +69,17 @@ export function ProfileGraph({
       gridThickness: 0.5,
       gridColor: "#f1f5f9",
       tickColor: "#e2e8f0",
+      crosshair: {
+        enabled: true,
+        snapToDataPoint: true,
+        updated: (e: any) => {
+          const p = profileData.find((p) => p.distance == e.value);
+          if (p) {
+            setHoveredPDP({ position: p.position });
+          }
+        },
+        hidden: () => setHoveredPDP(null),
+      },
     },
     axisY: {
       title: "Elevation (m)",
@@ -70,13 +93,13 @@ export function ProfileGraph({
     data: [
       {
         type: "splineArea",
-        color: "rgba(59, 130, 246, 0.3)",
-        lineColor: "#3b82f6",
+        color: "rgba(150, 217, 198, 0.4)",
+        lineColor: "rgba(150, 217, 198, 0.85)",
         lineThickness: 3,
         markerType: "circle",
         markerSize: 4,
         dataPoints: chartData,
-        toolTipContent: "{labelDist}<br/>📈 {labelElev}",
+        toolTipContent: "✈️ {labelDist}<br/>📶 {labelElev}",
       },
     ],
   };

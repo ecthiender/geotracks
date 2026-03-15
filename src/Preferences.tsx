@@ -1,22 +1,11 @@
-export type AltitudeUnit = "feet" | "meters";
-export type DistanceSpeedUnit = "kilometers" | "miles";
-
-export interface Preferences {
-  altitude: AltitudeUnit;
-  distance_speed: DistanceSpeedUnit;
-}
-
-export const DEFAULT_PREFERENCES: Preferences = {
-  altitude: "meters",
-  distance_speed: "kilometers",
-};
+import type { Preferences } from "./preferences";
 
 export default function WgPreferences({
   preferences,
   onChange,
 }: {
   preferences: Preferences;
-  onChange: any;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <div

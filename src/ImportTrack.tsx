@@ -1,6 +1,10 @@
 /// Import a track file from the user into the app
 
-export default function WgImportTrack({ onUpload }: { onUpload: any }) {
+interface WgImportTrackProps {
+  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+export default function WgImportTrack({ onUpload }: WgImportTrackProps) {
   return (
     <div
       style={{

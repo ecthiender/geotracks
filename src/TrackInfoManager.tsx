@@ -9,10 +9,12 @@ export default function WgTrackInfoManager({
   trackInfo,
   profileData,
   handleFileUpload,
+  setHoveredPDP,
 }: {
   trackInfo: TrackInfo;
   profileData: PDP[];
   handleFileUpload: any;
+  setHoveredPDP: any;
 }) {
   const [trackInfoWindow, setTrackInfoWindow] = useState({
     x: 20,
@@ -85,7 +87,7 @@ export default function WgTrackInfoManager({
               0 1px 4px rgba(0, 0, 0, 0.06);`;
           }}
           title="Toggle Track Info"
-          onClick={(_e) =>
+          onClick={() =>
             setTrackInfoWindow({
               ...trackInfoWindow,
               isVisible: !trackInfoWindow.isVisible,
@@ -133,7 +135,7 @@ export default function WgTrackInfoManager({
               0 1px 4px rgba(0, 0, 0, 0.06)`;
           }}
           title="Toggle Profile Graph"
-          onClick={(_e) =>
+          onClick={() =>
             setProfileWindow({
               ...profileWindow,
               isVisible: !profileWindow.isVisible,
@@ -152,6 +154,7 @@ export default function WgTrackInfoManager({
         profileData={profileData}
         profileWindow={profileWindow}
         setProfileWindow={setProfileWindow}
+        setHoveredPDP={setHoveredPDP}
       />
     </>
   );

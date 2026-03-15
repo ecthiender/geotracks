@@ -1,23 +1,33 @@
 /// The main core module to have all the core concepts, types, functions, algorithms etc.
 
-import { bbox, type AllGeoJSON } from "@turf/turf";
-import { length, lineString, distance, point } from "@turf/turf";
-import type { Viewport, MapViewState } from "@deck.gl/core";
+import {
+  bbox,
+  length,
+  lineString,
+  distance,
+  point,
+  type AllGeoJSON,
+} from "@turf/turf";
 import type {
+  BBox,
   Feature,
   FeatureCollection,
   GeoJsonProperties,
   Geometry,
   Position,
 } from "geojson";
-import type { DistanceSpeedUnit } from "./Preferences";
+import type { Viewport } from "@deck.gl/core";
+
+import type { DistanceSpeedUnit } from "./preferences";
+
+const SAMPLE_FACTOR = 3;
 
 export interface Track {
   data: DataArray[];
   waypoints: Waypoint[];
   start?: Position;
   end?: Position;
-  startView: MapViewState;
+  bounds: BBox;
   name?: string;
   desc?: string;
   duration?: number;
@@ -28,6 +38,7 @@ export interface Track {
 }
 
 export interface PDP {
+  position: Position;
   distance: number;
   elevation: number;
   timestamp: Date;
@@ -61,13 +72,17 @@ export interface StartEnd {
 
 export function processGeoJSON(
   geojson: FeatureCollection<Geometry | null, GeoJsonProperties>,
-): Track {
-  let tracks: DataArray[] = [];
+): Track | null {
+  const tracks: DataArray[] = [];
   const waypoints: Waypoint[] = [];
   let trackInfo = {};
-  let start = undefined;
-  let end = undefined;
+  let start;
+  let end;
 
+  console.log("geojson", geojson);
+  if (!geojson.features.length) {
+    return null;
+  }
   geojson.features.forEach((f: Feature<Geometry | null, GeoJsonProperties>) => {
     if (!f.geometry) return;
 
@@ -95,9 +110,9 @@ export function processGeoJSON(
     if (f.geometry.type === "Point") {
       // console.log("feat Point", f);
       let desc = [""];
-      if (f.properties?.hasOwnProperty("desc")) {
+      if (f.properties && "desc" in f.properties) {
         desc = f.properties.desc.split("\n");
-      } else if (f.properties?.hasOwnProperty("description")) {
+      } else if (f.properties && "description" in f.properties) {
         desc = f.properties?.description.split("\n");
       }
       waypoints.push({
@@ -114,22 +129,12 @@ export function processGeoJSON(
     end = tracks[0].path[tracks[0].path.length - 1];
   }
 
-  // remove null geometries before bbox
-  const bounds = bbox(geojson as AllGeoJSON);
-  const [minX, minY, maxX, maxY] = bounds;
-
-  let startView = {
-    longitude: (minX + maxX) / 2,
-    latitude: (minY + maxY) / 2,
-    zoom: 5,
-  };
-
   const profile: PDP[] = [];
   let cumDist = 0;
   tracks.forEach((t) => {
-    // Sample data for performance (every 10th point)
     t.path.forEach((p, j) => {
       profile.push({
+        position: p,
         distance: cumDist,
         elevation: p[2],
         timestamp: parseDate(t.timestamps[j]),
@@ -141,15 +146,18 @@ export function processGeoJSON(
       }
     });
   });
-  // sample the data for performance
-  const sampled = profile.filter((_t, i) => i % 10 === 0);
+  // Sample data for performance (every `SAMPLE_FACTOR`th point)
+  const sampled = profile.filter((_t, i) => i % SAMPLE_FACTOR === 0);
+
+  // remove null geometries before bbox
+  const bounds = bbox(geojson as AllGeoJSON);
 
   return {
     data: tracks,
     waypoints,
     start,
     end,
-    startView,
+    bounds,
     profileData: sampled,
     ...trackInfo,
   };
@@ -201,7 +209,7 @@ export function nearestPoint(
 
 export function calculateDistance(
   nearest: { pos: Position; idx: number },
-  object: any,
+  object: DataArray,
   unit: DistanceSpeedUnit,
 ): number {
   const pathLine = lineString(object.path.slice(0, nearest.idx + 1)); // Segment to nearest
@@ -212,7 +220,7 @@ export function calculateDistance(
 // Instant speed between prev/next points
 export function calculateInstantSpeed(
   nearest: { pos: Position; idx: number },
-  object: any,
+  object: DataArray,
   unit: DistanceSpeedUnit,
 ): number | null {
   let speed = null;

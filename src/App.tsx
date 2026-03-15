@@ -1,15 +1,8 @@
 import { useMemo, useState } from "react";
-import { PathLayer, IconLayer } from "@deck.gl/layers";
+import { PathLayer, IconLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { gpx, kml } from "@tmcw/togeojson";
 import type { LayersList } from "@deck.gl/core";
 
-import WgPreferences, {
-  DEFAULT_PREFERENCES,
-  type AltitudeUnit,
-  type DistanceSpeedUnit,
-  type Preferences,
-} from "./Preferences";
-import { WgMap } from "./Map";
 import {
   processGeoJSON,
   type DataArray,
@@ -18,6 +11,14 @@ import {
   type TrackInfo,
   type Waypoint,
 } from "./lib";
+import {
+  DEFAULT_PREFERENCES,
+  type AltitudeUnit,
+  type DistanceSpeedUnit,
+  type Preferences,
+} from "./preferences";
+import WgPreferences from "./Preferences";
+import { WgMap } from "./Map";
 import WgTrackInfoManager from "./TrackInfoManager";
 
 const INITIAL_VIEW_STATE = {
@@ -33,8 +34,9 @@ export default function App() {
   const [trackInfo, setTrackInfo] = useState<TrackInfo>({});
   const [preferences, setPreferences] =
     useState<Preferences>(DEFAULT_PREFERENCES);
-  const [startend, setStartEnd] = useState<StartEnd | undefined>(undefined);
+  const [startend, setStartEnd] = useState<StartEnd | null>(null);
   const [profileData, setProfileData] = useState<PDP[]>([]);
+  const [hoveredPDP, setHoveredPDP] = useState<PDP | null>(null);
 
   // event handler function for file upload event
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -51,25 +53,41 @@ export default function App() {
       const parser = new DOMParser();
       const xml = parser.parseFromString(text, "text/xml");
 
+      console.log("xml", xml);
+      console.log("gpx", gpx(xml));
       let geojson;
       if (file.name.endsWith(".gpx")) geojson = gpx(xml);
       else if (file.name.endsWith(".kml")) geojson = kml(xml);
       else return;
 
       const track = processGeoJSON(geojson);
-      if (track.start && track.end) {
-        setStartEnd({
-          start: track.start,
-          end: track.end,
+      if (track !== null) {
+        if (track.start && track.end) {
+          setStartEnd({
+            start: track.start,
+            end: track.end,
+          });
+        }
+
+        const [minX, minY, maxX, maxY] = track.bounds;
+        // todo: animate transition and set to deduced zoom
+        const startView = {
+          longitude: (minX + maxX) / 2,
+          latitude: (minY + maxY) / 2,
+          zoom: 5,
+        };
+        console.log("bounding box", track.bounds);
+
+        setPaths(track.data);
+        setWaypoints(track.waypoints);
+        setViewState(startView);
+        setTrackInfo({
+          ...track,
         });
+        setProfileData(track.profileData);
+      } else {
+        alert("Invalid or empty GPX/KML data");
       }
-      setPaths(track.data);
-      setWaypoints(track.waypoints);
-      setViewState(track.startView);
-      setTrackInfo({
-        ...track,
-      });
-      setProfileData(track.profileData);
     };
 
     // trigger the file read action/event
@@ -93,8 +111,8 @@ export default function App() {
   }
 
   const layers = useMemo(
-    () => makeLayers(paths, waypoints, startend),
-    [paths, waypoints, startend],
+    () => makeLayers(paths, waypoints, startend, hoveredPDP),
+    [paths, waypoints, startend, hoveredPDP],
   );
 
   return (
@@ -107,6 +125,7 @@ export default function App() {
         trackInfo={trackInfo}
         profileData={profileData}
         handleFileUpload={handleFileUpload}
+        setHoveredPDP={setHoveredPDP}
       />
       <WgMap
         viewState={viewState}
@@ -121,7 +140,8 @@ export default function App() {
 function makeLayers(
   paths: DataArray[],
   waypoints: Waypoint[],
-  startend?: StartEnd,
+  startend: StartEnd | null,
+  hoveredPDP: PDP | null,
 ): LayersList {
   const layers = [];
 
@@ -192,5 +212,19 @@ function makeLayers(
       }),
     );
   }
+
+  if (hoveredPDP) {
+    layers.push(
+      new ScatterplotLayer({
+        id: "profile-graph-sync-marker",
+        data: [hoveredPDP],
+        getPosition: (d) => d.position,
+        getRadius: 10,
+        radiusMinPixels: 6,
+        getFillColor: [220, 240, 50],
+      }),
+    );
+  }
+
   return layers;
 }
