@@ -1,12 +1,10 @@
 /// The main core module to have all the core concepts, types, functions, algorithms etc.
 
 import {
-  bbox,
   length,
   lineString,
   distance,
   point,
-  type AllGeoJSON,
 } from "@turf/turf";
 import type {
   BBox,
@@ -16,14 +14,24 @@ import type {
   Geometry,
   Position,
 } from "geojson";
-import type { Viewport } from "@deck.gl/core";
+import {
+  WebMercatorViewport,
+  type MapViewState,
+  type Viewport,
+} from "@deck.gl/core";
 
 import type { DistanceSpeedUnit } from "./preferences";
 
 const SAMPLE_FACTOR = 3;
+const DEFAULT_VIEWPORT_SIZE = { width: 1024, height: 768 };
+const VIEW_STATE_PADDING = 80;
+const MIN_BOUNDS_SPAN = 0.0001;
+const MIN_ZOOM = 0;
+const MAX_ZOOM = 18;
 
 export interface Track {
   data: DataArray[];
+  profileData: PDP[];
   waypoints: Waypoint[];
   start?: Position;
   end?: Position;
@@ -34,7 +42,6 @@ export interface Track {
   length?: number;
   timestamp?: Date;
   createTime?: Date;
-  profileData: PDP[];
 }
 
 export interface PDP {
@@ -124,10 +131,10 @@ export function processGeoJSON(
     }
   });
 
-  if (tracks.length) {
-    start = tracks[0].path[0];
-    end = tracks[0].path[tracks[0].path.length - 1];
-  }
+  if (!tracks.length) return null;
+
+  start = tracks[0].path[0];
+  end = tracks[0].path[tracks[0].path.length - 1];
 
   const profile: PDP[] = [];
   let cumDist = 0;
@@ -146,21 +153,134 @@ export function processGeoJSON(
       }
     });
   });
-  // Sample data for performance (every `SAMPLE_FACTOR`th point)
+  // Sampled data for performance (every `SAMPLE_FACTOR`th point)
   const sampled = profile.filter((_t, i) => i % SAMPLE_FACTOR === 0);
 
-  // remove null geometries before bbox
-  const bounds = bbox(geojson as AllGeoJSON);
+  const bounds = getPathBounds(tracks);
+  if (!bounds) return null;
 
   return {
     data: tracks,
+    profileData: sampled,
     waypoints,
     start,
     end,
     bounds,
-    profileData: sampled,
     ...trackInfo,
   };
+}
+
+function getPathBounds(tracks: DataArray[]): BBox | null {
+  let minY = Infinity;
+  let maxY = -Infinity;
+  let pointCount = 0;
+  const longitudes: number[] = [];
+
+  tracks.forEach((track) => {
+    track.path.forEach(([x, y]) => {
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+      pointCount += 1;
+      longitudes.push(x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+    });
+  });
+
+  if (pointCount === 0) return null;
+
+  const [minX, maxX] = getShortestLongitudeBounds(longitudes);
+
+  return [minX, minY, maxX, maxY];
+}
+
+function getShortestLongitudeBounds(longitudes: number[]): [number, number] {
+  if (longitudes.length === 1) return [longitudes[0], longitudes[0]];
+
+  const normalized = longitudes
+    .map((longitude) => normalizeLongitude360(longitude))
+    .sort((a, b) => a - b);
+  let largestGap = -Infinity;
+  let largestGapIndex = 0;
+
+  normalized.forEach((longitude, index) => {
+    const next = normalized[(index + 1) % normalized.length];
+    const gap =
+      index === normalized.length - 1 ? next + 360 - longitude : next - longitude;
+
+    if (gap > largestGap) {
+      largestGap = gap;
+      largestGapIndex = index;
+    }
+  });
+
+  const min = normalized[(largestGapIndex + 1) % normalized.length];
+  const max = normalized[largestGapIndex];
+
+  if (min <= max) return [normalizeLongitude180(min), normalizeLongitude180(max)];
+
+  return [min, max + 360];
+}
+
+function normalizeLongitude360(longitude: number): number {
+  return ((longitude % 360) + 360) % 360;
+}
+
+function normalizeLongitude180(longitude: number): number {
+  const normalized = normalizeLongitude360(longitude);
+  return normalized > 180 ? normalized - 360 : normalized;
+}
+
+export function initialViewStateFromBounds(
+  bounds: BBox,
+  viewportSize = DEFAULT_VIEWPORT_SIZE,
+): MapViewState {
+  const { width, height } = viewportSize;
+  const viewportWidth = width > 0 ? width : DEFAULT_VIEWPORT_SIZE.width;
+  const viewportHeight = height > 0 ? height : DEFAULT_VIEWPORT_SIZE.height;
+  const [minX, minY, maxX, maxY] = expandBounds(bounds);
+  const padding = Math.min(
+    VIEW_STATE_PADDING,
+    Math.floor(viewportWidth / 4),
+    Math.floor(viewportHeight / 4),
+  );
+
+  const viewport = new WebMercatorViewport({
+    width: viewportWidth,
+    height: viewportHeight,
+  });
+  const { longitude, latitude, zoom } = viewport.fitBounds(
+    [
+      [minX, minY],
+      [maxX, maxY],
+    ],
+    { padding },
+  );
+
+  return {
+    longitude,
+    latitude,
+    zoom: clamp(zoom, MIN_ZOOM, MAX_ZOOM),
+  };
+}
+
+function expandBounds(bounds: BBox): BBox {
+  const [minX, minY, maxX, maxY] = bounds;
+  const width = Math.max(maxX - minX, MIN_BOUNDS_SPAN);
+  const height = Math.max(maxY - minY, MIN_BOUNDS_SPAN);
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+
+  return [
+    centerX - width / 2,
+    centerY - height / 2,
+    centerX + width / 2,
+    centerY + height / 2,
+  ];
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }
 
 function makeTrackInfo(

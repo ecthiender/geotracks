@@ -1,9 +1,14 @@
 import { useMemo, useState } from "react";
 import { PathLayer, IconLayer, ScatterplotLayer } from "@deck.gl/layers";
 import { gpx, kml } from "@tmcw/togeojson";
-import type { LayersList } from "@deck.gl/core";
+import {
+  FlyToInterpolator,
+  type LayersList,
+  type MapViewState,
+} from "@deck.gl/core";
 
 import {
+  initialViewStateFromBounds,
   processGeoJSON,
   type DataArray,
   type PDP,
@@ -21,7 +26,9 @@ import WgPreferences from "./Preferences";
 import { WgMap } from "./Map";
 import WgTrackInfoManager from "./TrackInfoManager";
 
-const INITIAL_VIEW_STATE = {
+const TRACK_LOAD_TRANSITION_DURATION = 2000;
+
+const INITIAL_VIEW_STATE: MapViewState = {
   longitude: 0,
   latitude: 0,
   zoom: 2,
@@ -69,18 +76,20 @@ export default function App() {
           });
         }
 
-        const [minX, minY, maxX, maxY] = track.bounds;
-        // todo: animate transition and set to deduced zoom
-        const startView = {
-          longitude: (minX + maxX) / 2,
-          latitude: (minY + maxY) / 2,
-          zoom: 5,
+        const startView = initialViewStateFromBounds(track.bounds, {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        });
+        const animatedStartView: MapViewState = {
+          ...startView,
+          transitionDuration: TRACK_LOAD_TRANSITION_DURATION,
+          transitionInterpolator: new FlyToInterpolator(),
         };
         console.log("bounding box", track.bounds);
 
         setPaths(track.data);
         setWaypoints(track.waypoints);
-        setViewState(startView);
+        setViewState(animatedStartView);
         setTrackInfo({
           ...track,
         });
